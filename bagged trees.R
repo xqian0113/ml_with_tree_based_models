@@ -1,0 +1,52 @@
+# install.packages('ipred')
+# install.packages("caret")
+install.packages('e1071')
+library(ipred)
+library(caret)
+library(e1071)
+
+setwd('C:/Users/xqian/Documents/GitHub/ml_with_tree_based_models')
+
+# train/test plit 
+credit <- read.csv('credit.csv')
+
+# Total number of rows in the credit data frame
+n <- nrow(credit)
+
+# Number of rows for the training set (80% of the dataset)
+n_train <- round(0.8 * n) 
+
+# Create a vector of indices which is an 80% random sample
+set.seed(123)
+train_indices <- sample(1:n, n_train)
+
+# Subset the credit data frame to training indices only
+credit_train <- credit[train_indices, ]  
+
+# Exclude the training indices to create the test set
+credit_test <- credit[-train_indices, ]  
+
+# Bagging is a randomized model, so let's set a seed (123) for reproducibility
+set.seed(123)
+
+# Train a bagged model
+credit_model <- bagging(formula = default ~ ., 
+                        data = credit_train,
+                        coob = TRUE)
+
+# Print the model
+print(credit_model)
+
+# Evaluating the performance of bagged tree models
+
+# Generate predicted classes using the model object
+class_prediction <- predict(object = credit_model,    
+                            newdata = credit_test,  
+                            type = "class")  # return classification labels
+
+# Print the predicted classes
+print(class_prediction)
+
+# Calculate the confusion matrix for the test set
+confusionMatrix(data = class_prediction,       
+                reference = credit_test$default)  
