@@ -1,9 +1,10 @@
 # install.packages('ipred')
 # install.packages("caret")
-install.packages('e1071')
+# install.packages('e1071')
 library(ipred)
 library(caret)
 library(e1071)
+library(Metrics)
 
 setwd('C:/Users/xqian/Documents/GitHub/ml_with_tree_based_models')
 
@@ -50,3 +51,53 @@ print(class_prediction)
 # Calculate the confusion matrix for the test set
 confusionMatrix(data = class_prediction,       
                 reference = credit_test$default)  
+
+# Generate predictions on the test set
+pred <- predict(object = credit_model,
+                newdata = credit_test,
+                type = "prob")
+
+# `pred` is a matrix
+class(pred)
+
+# Look at the pred format
+head(pred)
+
+# Compute the AUC (`actual` must be a binary (or 1/0 numeric) vector)
+auc(actual = ifelse(credit_test$default == "yes", 1, 0), 
+    predicted = pred[,"yes"])                    
+
+# cross-validation
+
+# Specify the training configuration
+ctrl <- trainControl(method = "cv",     # Cross-validation
+                     number = 5,      # 5 folds
+                     classProbs = TRUE,                  # For AUC
+                     summaryFunction = twoClassSummary)  # For AUC
+
+# Cross validate the credit model using "treebag" method; 
+# Track AUC (Area under the ROC curve)
+set.seed(1)  # for reproducibility
+credit_caret_model <- train(default ~ .,
+                            data = credit_train, 
+                            method = "treebag",
+                            metric = "ROC",
+                            trControl = ctrl)
+
+# Look at the model object
+print(credit_caret_model)
+
+# Inspect the contents of the model list 
+names(credit_caret_model)
+
+# Print the CV AUC
+credit_caret_model$results[,"ROC"]
+
+# Generate predictions on the test set
+pred <- predict(object = credit_caret_model, 
+                newdata = credit_test,
+                type = "prob")
+
+# Compute the AUC (`actual` must be a binary (or 1/0 numeric) vector)
+auc(actual = ifelse(credit_test$default == "yes", 1, 0), 
+    predicted = pred[,"yes"])
